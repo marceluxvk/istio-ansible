@@ -81,22 +81,36 @@
         echo "export PATH=\$PATH:/usr/local/bin" >> /etc/profile
       args:
         creates: /usr/local/bin/helm
-    - name: Installing Docker Registry
-      become: yes
-      shell: |
-        helm install stable/docker-registry --name registry --set service.clusterIP=10.104.205.15
     - name: Installing Istio
       become: yes
       shell: |
         cd /usr/local
         curl -L https://git.io/getLatestIstio |sh -
         echo "export PATH=\$PATH:/$(pwd)/$(ls -d istio*)/bin" >> /etc/profile
-    - name: Installing Golang
+        cd $(ls -d istio*)
+        kubectl apply -f install/kubernetes/istio.yaml
+    - name: Waiting Istio to be Ready
       become: yes
-      yum: pkg={{item}} state=latest
-      with_items:
-        - golang
-        - git
+      shell: "kubectl get pod  --namespace=istio-system|grep istio-mixer"
+      register: nodes
+      until:      
+        - '" Running "  in nodes.stdout'
+      retries: 20
+      delay: 5
+    - name: Installing Jaeger
+      become: yes
+      shell: |
+        kubectl apply -n istio-system -f https://raw.githubusercontent.com/jaegertracing/jaeger-kubernetes/master/all-in-one/jaeger-all-in-one-template.yml
+        kubectl port-forward -n istio-system $(kubectl get pod -n istio-system -l app=jaeger -o jsonpath='{.items[0].metadata.name}') 16686:16686 &
+    - name: Installing Prometheus + Graphana
+      become: yes
+      shell: |
+        cd /usr/local
+        cd $(ls -d istio*)
+        kubectl apply -f install/kubernetes/addons/prometheus.yaml
+        kubectl apply -f install/kubernetes/addons/grafana.yaml
+        kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=prometheus -o jsonpath='{.items[0].metadata.name}') 9090:9090 &
+        kubectl -n istio-system port-forward $(kubectl -n istio-system get pod -l app=grafana -o jsonpath='{.items[0].metadata.name}') 3000:3000 &
 - hosts: kube2 kube3 kube4 kube5
   tasks:
     - name: Adding note into the K8S Cluster
