@@ -60,6 +60,43 @@
         kubectl taint nodes --all node-role.kubernetes.io/master-
         echo "source <(kubectl completion bash)" >> ~/.bashrc
         echo "source <(kubectl completion bash)" >> /home/vagrant/.bashrc
+      args:
+        creates: /home/vagrant/.kube/config
+    - name: Waiting K8S to be Ready
+      become: yes
+      shell: "/usr/bin/kubectl get nodes"
+      register: nodes
+      until:      
+        - '" Ready "  in nodes.stdout'      
+      retries: 20
+      delay: 5
+    - name: Installing Helm
+      become: yes
+      shell: |
+        curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+        kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default   
+        kubectl create clusterrolebinding add-on-cluster-adm --clusterrole=cluster-admin --serviceaccount=default:default
+        /usr/local/bin/helm init
+        /usr/local/bin/helm repo update
+        echo "export PATH=\$PATH:/usr/local/bin" >> /etc/profile
+      args:
+        creates: /usr/local/bin/helm
+    - name: Installing Docker Registry
+      become: yes
+      shell: |
+        helm install stable/docker-registry --name registry --set service.clusterIP=10.104.205.15
+    - name: Installing Istio
+      become: yes
+      shell: |
+        cd /usr/local
+        curl -L https://git.io/getLatestIstio |sh -
+        echo "export PATH=\$PATH:/$(pwd)/$(ls -d istio*)/bin" >> /etc/profile
+    - name: Installing Golang
+      become: yes
+      yum: pkg={{item}} state=latest
+      with_items:
+        - golang
+        - git
 - hosts: kube2 kube3 kube4 kube5
   tasks:
     - name: Adding note into the K8S Cluster
