@@ -1,0 +1,18 @@
+- hosts: all
+  roles:
+    - basic
+  vars:
+    dns:
+    - {name: "kube1", ip: "172.18.10.81"}
+    - {name: "kube2", ip: "172.18.10.82"}
+    - {name: "kube3", ip: "172.18.10.83"}
+    - {name: "kube4", ip: "172.18.10.84"}
+- hosts: kube1
+  roles:
+    - k8s
+    - istio
+    - jaeger
+    - prometheus
+- hosts: kube2 kube3 kube4
+  roles:
+    - kubelet

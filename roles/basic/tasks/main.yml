@@ -1,0 +1,52 @@
+- name: Mapping /etc/hosts
+  become: yes
+  blockinfile:
+    path: /etc/hosts
+    block: |
+      {{ item.ip }} {{item.name}}
+    marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item.ip }}"
+  with_items: "{{ dns }}"
+- name: Disabling Swap
+  become: yes
+  command: swapoff -a
+- name: Disabling SELinux
+  become: yes
+  command: setenforce 0
+- name: Configuring Kubernetes Repo
+  become: yes
+  yum_repository:
+      name: kubernetes
+      description: K8S Official Repository
+      baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      enabled: yes
+      gpgcheck: yes
+      repo_gpgcheck: yes
+      gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+- name: Install packages
+  become: yes
+  yum: pkg={{item}} state=latest allow_downgrade=True
+  with_items:
+    - net-tools
+    - docker
+    - kubeadm
+    - kubelet
+    - kubectl
+- name: Configure Kubernetes Network
+  become: yes
+  copy:
+    dest: /etc/sysctl.d/k8s.conf # required. Remote absolute path where the file should be copied to. If I(src) is a directory, this must be a directory too. If I(dest) is a nonexistent path and if either I(dest) ends with "/" or I(src) is a directory, I(dest) is created. If I(src) and I(dest) are files, the parent directory of I(dest) isn't created: the task fails if it doesn't already exist.
+    content: |
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.bridge.bridge-nf-call-iptables = 1
+- name: Restarting Sysctl
+  become: yes
+  command: sysctl --system
+- name: Starting Services
+  become: yes
+  service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  with_items:
+    - docker
+    - kubelet

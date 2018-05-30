@@ -1,0 +1,3 @@
+- name: Adding note into the K8S Cluster
+  become: yes
+  command: sh /vagrant/key.txt

@@ -1,0 +1,35 @@
+- name: Installing Kubernetes Master Node
+  become: yes
+  shell: |
+    kubeadm init --apiserver-advertise-address $(ifconfig eth2|grep netmask|awk '{print $2}') --pod-network-cidr=10.244.0.0/16 | grep 'kubeadm join' > /vagrant/key.txt
+    mkdir -p /home/vagrant/.kube
+    mkdir -p ~/.kube
+    cp -i /etc/kubernetes/admin.conf ~/.kube/config
+    cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config
+    chown $(id -u):$(id -g) $HOME/.kube/config  
+    chown vagrant:vagrant /home/vagrant/.kube/config  
+    kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+    kubectl taint nodes --all node-role.kubernetes.io/master-
+    echo "source <(kubectl completion bash)" >> ~/.bashrc
+    echo "source <(kubectl completion bash)" >> /home/vagrant/.bashrc
+  args:
+    creates: /home/vagrant/.kube/config
+- name: Waiting K8S to be Ready
+  become: yes
+  shell: "/usr/bin/kubectl get nodes"
+  register: nodes
+  until:      
+    - '" Ready "  in nodes.stdout'      
+  retries: 20
+  delay: 5
+- name: Installing Helm
+  become: yes
+  shell: |
+    curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+    kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default   
+    kubectl create clusterrolebinding add-on-cluster-adm --clusterrole=cluster-admin --serviceaccount=default:default
+    /usr/local/bin/helm init
+    /usr/local/bin/helm repo update
+    echo "export PATH=\$PATH:/usr/local/bin" >> /etc/profile
+  args:
+    creates: /usr/local/bin/helm
