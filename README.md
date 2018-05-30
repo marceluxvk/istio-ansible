@@ -1,3 +1,3 @@
-http://localhost:3000/dashboard/db/istio-dashboard
-http://localhost:16686/
-http://localhost:9090/graph
+- [graphana](http://192.168.10.20:3000/dashboard/db/istio-dashboard)
+- [jaeger](http://192.168.10.20:16686/)
+- [prometheus](http://192.168.10.20:9090/graph)
