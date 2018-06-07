@@ -1,7 +1,7 @@
 - name: Installing Kubernetes Master Node
   become: yes
   shell: |
-    kubeadm init --apiserver-advertise-address $(ifconfig eth2|grep netmask|awk '{print $2}') --pod-network-cidr=10.244.0.0/16 | grep 'kubeadm join' > /vagrant/key.txt
+    kubeadm init --apiserver-advertise-address $(ifconfig eth1|grep netmask|awk '{print $2}') --pod-network-cidr=10.244.0.0/16 | grep 'kubeadm join' > /vagrant/key.txt
     mkdir -p /home/vagrant/.kube
     mkdir -p ~/.kube
     cp -i /etc/kubernetes/admin.conf ~/.kube/config
