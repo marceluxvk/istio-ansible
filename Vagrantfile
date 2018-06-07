@@ -1,5 +1,5 @@
 Vagrant.configure('2') do |config|
-  numberOfNodes=4
+  numberOfNodes=3
 
   kubelets = Array.new(numberOfNodes)
   (1..numberOfNodes).each do |id|
@@ -7,12 +7,12 @@ Vagrant.configure('2') do |config|
   end
 
   config.vm.box = "centos/7"
-  config.vm.network "private_network", type: "dhcp"
 
   config.vm.provider 'virtualbox' do |vb|
       vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
-      vb.memory = '4098'
+      vb.memory = '8192'
+      vb.cpus = 8
   end
   
   (1..numberOfNodes).each do |host|
@@ -21,13 +21,13 @@ Vagrant.configure('2') do |config|
             server.vm.network "forwarded_port", guest: 16686, host: 16686, guest_ip: "127.0.0.1" #Jaeger
             server.vm.network "forwarded_port", guest: 3000, host: 3000, guest_ip: "127.0.0.1" #graphana
             server.vm.network "forwarded_port", guest: 9090, host: 9090, guest_ip: "127.0.0.1" #Prometheus
+            server.vm.network "forwarded_port", guest: 9000, host: 9000, guest_ip: "127.0.0.1" #Spinnaker
           end
       
           server.vm.hostname = "kube#{host}"
           server.vm.synced_folder '.', '/vagrant', type: 'virtualbox'
           server.vm.network "private_network", ip: "172.18.10.8#{host}"
           server.vm.provision "ansible" do |ansible|
-              #ansible.playbook = 'playbooks/playbook.yml'
               ansible.playbook = 'install.yml'
           end
       end
