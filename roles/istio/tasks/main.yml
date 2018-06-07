@@ -2,15 +2,23 @@
   become: yes
   shell: |
     cd /usr/local
-    curl -L https://git.io/getLatestIstio |sh -
+    curl -L https://git.io/getLatestIstio -o istio.sh
+    sh istio.sh
+    rm istio.sh
     echo "export PATH=\$PATH:/$(pwd)/$(ls -d istio*)/bin" >> /etc/profile
     cd $(ls -d istio*)
-    kubectl apply -f install/kubernetes/istio.yaml
+    /usr/local/bin/helm repo update
+    /usr/local/bin/helm template install/kubernetes/helm/istio --name istio --namespace istio-system --set sidecarInjectorWebhook.enabled=false > $HOME/istio.yaml
+    kubectl create namespace istio-system
+    kubectl create -f $HOME/istio.yaml
+    touch $HOME/istio.yaml.ok
+  args:
+    creates: /root/istio.yaml.ok
 - name: Waiting Istio to be Ready
   become: yes
-  shell: "kubectl get pod  --namespace=istio-system|grep istio-mixer"
+  shell: "kubectl get pod  --namespace=istio-system|grep istio-telemetry"
   register: nodes
   until:      
     - '" Running "  in nodes.stdout'
-  retries: 20
-  delay: 5
+  retries: 30
+  delay: 10
