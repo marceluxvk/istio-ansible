@@ -11,7 +11,9 @@
   command: swapoff -a
 - name: Disabling SELinux
   become: yes
-  command: setenforce 0
+  selinux:
+      state: disabled # required. choices: enforcing;permissive;disabled. The SELinux mode
+      conf: /etc/selinux/config # not required. path to the SELinux configuration file, if non-standard
 - name: Configuring Kubernetes Repo
   become: yes
   yum_repository:
@@ -26,11 +28,8 @@
   become: yes
   yum: pkg={{item}} state=latest allow_downgrade=True
   with_items:
-    - net-tools
     - docker
-    - kubeadm
-    - kubelet
-    - kubectl
+    - kubelet-1.9.0
 - name: Configure Kubernetes Network
   become: yes
   copy:
