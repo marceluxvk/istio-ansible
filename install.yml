@@ -9,7 +9,9 @@
     - {name: "kube4", ip: "172.18.10.84"}
 - hosts: kube1
   roles:
+    - master-base
     - k8s
+    - spinnaker
     - istio
     - jaeger
     - prometheus
