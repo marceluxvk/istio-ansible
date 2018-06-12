@@ -11,12 +11,19 @@
         - default
 - name: Mapping storages
   become: yes
-  command: kubectl apply -f /vagrant/roles/spinnaker/files/storage.yaml
+  shell: |
+    kubectl apply -f /vagrant/roles/spinnaker/files/storage.yaml
+    touch /root/storage.ok
+  args:
+    creates: /root/storage.ok
 - name: Creating Secret with K8S Credentials
   become: yes
   command: kubectl create secret generic --from-file=$HOME/.kube/config my-kubeconfig
 - name: Installing Spinnaker
   become: yes
   shell: |
-    helm install -n kubelive stable/spinnaker -f https://raw.githubusercontent.com/kubernetes/charts/master/stable/spinnaker/values.yaml --timeout 900  --version 0.3.5 --namespace spinnaker
-    kubectl port-forward --namespace spinnaker $(kubectl get pods --namespace spinnaker -l "component=deck,app=kubelive-spinnaker" -o jsonpath="{.items[0].metadata.name}") 9000
+    /usr/local/bin/helm install -n kubelive stable/spinnaker -f https://raw.githubusercontent.com/kubernetes/charts/master/stable/spinnaker/values.yaml --timeout 900  --version 0.3.5 --namespace spinnaker
+    touch /root/spinnaker.ok
+  args:
+    creates: /root/spinnaker.ok
+#kubectl port-forward --namespace spinnaker $(kubectl get pods --namespace spinnaker -l "component=deck,app=kubelive-spinnaker" -o jsonpath="{.items[0].metadata.name}") 9000
