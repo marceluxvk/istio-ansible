@@ -33,3 +33,11 @@
     echo "export PATH=\$PATH:/usr/local/bin" >> /etc/profile
   args:
     creates: /usr/local/bin/helm
+- name: Waiting Helm to become Ready
+  become: yes
+  shell: "kubectl get pod  --namespace=kube-system|grep tiller-deploy"
+  register: nodes
+  until:      
+    - '" Running "  in nodes.stdout'
+  retries: 30
+  delay: 10
